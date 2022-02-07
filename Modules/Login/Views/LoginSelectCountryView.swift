@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-extension LoginScreen {
+extension LoginScreenView {
     
     struct SelectCountryView: View {
         
@@ -91,10 +91,10 @@ extension LoginScreen {
 
 struct SelectCountryScreen_Previews: PreviewProvider {
 
-    @StateObject static var vm = LoginScreen.ViewModel(resolver: getPreviewResolver())
+    @StateObject static var vm = LoginScreenView.ViewModel(resolver: getPreviewResolver())
 
     static var previews: some View {
-        LoginScreen.SelectCountryView(
+        LoginScreenView.SelectCountryView(
             countries: PlistCountryDataService().countries,
             current: $vm.currentCountry)
     }

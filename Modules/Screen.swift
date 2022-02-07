@@ -6,5 +6,10 @@
 //
 
 import SwiftUI
+import Swinject
 
-protocol Screen {}
+protocol Screen {
+    init(resolver: Resolver)
+}
+
+

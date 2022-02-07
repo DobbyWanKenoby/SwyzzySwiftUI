@@ -5,6 +5,7 @@
 //  Created by Василий Усов on 26.01.2022.
 //
 import UIKit
+import Combine
 import SwiftUI
 import Swinject
 import Firebase
@@ -12,20 +13,33 @@ import Firebase
 @main
 struct SwyzzySwiftUIApp: App {
     
-    @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    @UIApplicationDelegateAdaptor(AppDelegate.self)
+    var delegate
     
-    private var assembler = Assembler([
+    @StateObject
+    var vm = AppViewModel(resolver: Self.resolver)
+    
+    
+    static var assembler = Assembler([
         DataServiceAssembly(),
         FirebaseAssembly()
     ])
     
+    static var resolver: Resolver {
+        Self.assembler.resolver
+    }
+
     var body: some Scene {
         WindowGroup {
-            LoginScreen(resolver: assembler.resolver).rootView
-                .onOpenURL { url in
-                    print("Received URL: \(url)")
-                    Auth.auth().canHandle(url)
-                }
+            if vm.isAuth {
+                LoadingScreenView(resolver: Self.resolver)
+            } else {
+                LoginScreenView(resolver: Self.resolver)
+                    .onOpenURL { url in
+                        print("Received URL: \(url)")
+                        Auth.auth().canHandle(url)
+                    }
+            }
         }
     }
 }
@@ -33,7 +47,11 @@ struct SwyzzySwiftUIApp: App {
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+        
         FirebaseApp.configure()
+//        do {
+//            try Auth.auth().signOut()
+//        } catch {}
         return true
     }
     

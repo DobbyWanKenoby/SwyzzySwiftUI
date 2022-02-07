@@ -17,12 +17,12 @@ class DataServiceAssembly: Assembly {
 
 class FirebaseAssembly: Assembly {
     func assemble(container: Container) {
-        container.register(PhoneAuthProvider.self) { _ in
-            FirebasePhoneAuthProvider()
+        container.register(UserService.self) { r in
+            FirebaseUserService()
         }.inObjectScope(.container)
         
-        container.register(SMSRequester.self) { r in
-            BaseSMSRequester(phoneAuthProvider: r.resolve(PhoneAuthProvider.self)!)
+        container.register(AuthService.self) { _ in
+            FirebaseAuthService()
         }.inObjectScope(.container)
     }
 }

@@ -10,7 +10,6 @@ import Swinject
 
 func getPreviewResolver() -> Resolver {
     Assembler([
-        DataServiceAssembly(),
-        FirebaseAssembly()
+        BaseAssembly()
     ]).resolver
 }

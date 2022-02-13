@@ -44,23 +44,10 @@ extension UserQuestionnaireScreenView {
                         
                     }
                     Spacer()
-                    Button {
-                        vm.saveUserNameAndShowNextScreen()
-                    } label: {
-                        Text("Save")
-                            .font(.title2)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(StandartButtonStyle())
+                    sendButton
 
                 }
                 .padding()
-                .modifier(BlurViewModifier(isBlur: $vm.isShowingLoaderOnEnterNamePage))
-                if vm.isShowingLoaderOnEnterNamePage {
-                    loaderView
-                        .animation(.easeInOut(duration: 0.3), value: vm.isShowingLoaderOnEnterNamePage)
-                }
             }
             
         }
@@ -72,6 +59,26 @@ extension UserQuestionnaireScreenView {
                 .ignoresSafeArea()
             LoaderView()
                 .frame(width: 50, height: 50)
+        }
+        
+        private var sendButton: some View {
+            Button {
+                vm.saveUserNameAndShowNextScreen()
+            } label: {
+                if !vm.isShowingLoaderOnEnterNamePage {
+                    Text("Save")
+                        .font(.title2)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                } else {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: Color.accentButtonText))
+                        .frame(height: 55)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .buttonStyle(StandartButtonStyle())
+            .disabled(vm.isShowingLoaderOnEnterNamePage)
         }
     }
 }

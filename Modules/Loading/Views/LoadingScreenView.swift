@@ -23,22 +23,6 @@ struct LoadingScreenView: BaseView {
             VStack(spacing: 40) {
                 LoaderView()
                     .frame(width: 100, height: 100)
-//                Circle()
-//                    .trim(from: vm.isAnimate ? 0 : 0.99, to: 1)
-//                    .stroke(style: StrokeStyle(lineWidth: 10, lineCap: .round, lineJoin: .round))
-//                    .fill(RadialGradient(colors: [Color.accent, Color.accent2], center: .top, startRadius: 50, endRadius: 100))
-//                    .frame(width: 100, height: 100)
-//                    .animation(
-//                        Animation
-//                            .easeInOut(duration: 2)
-//                            .repeatForever(autoreverses: true),
-//                        value: vm.isAnimate)
-//                    .rotationEffect(.degrees(vm.isAnimate ? 720 : 0))
-//                    .animation(
-//                        Animation
-//                            .linear(duration: 2)
-//                            .repeatForever(autoreverses: false),
-//                        value: vm.isAnimate)
                 Text("Updating data")
                     .font(.title)
                     .fontWeight(.bold)
@@ -51,9 +35,9 @@ struct LoadingScreenView: BaseView {
         .alert(vm.alertMessage, isPresented: $vm.isShowingAlert) {
             Button("OK", role: .cancel) {}
         }
-        .fullScreenCover(isPresented: $vm.didEndUpdating) {
-            UserQuestionnaireScreenView(resolver: resolver)
-        }
+//        .fullScreenCover(isPresented: $vm.didEndUpdating) {
+//            UserQuestionnaireScreenView(resolver: resolver)
+//        }
     }
 }
 

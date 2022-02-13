@@ -16,12 +16,17 @@ import SwiftUI
 // MARK: - Protocol
 
 protocol AuthService: AnyObject {
+    
+    var isAuth: Bool { get }
+    
     // get publisher of auth states
     // send event every changing of auth state
     var statePublisher: AnyPublisher<Bool,Never> { get }
     
+    init(resolver: Resolver)
+    
     // Auth by phone
-    func authRequestSMSCode(toPhone: String) -> AnyPublisher<Void,Error>
+    func authRequestSMSCode(toPhone: PhoneNumber) -> AnyPublisher<Void,Error>
     func tryAuth(withCode: String) -> AnyPublisher<Void, Error>
 }
 
@@ -70,6 +75,13 @@ extension Publishers {
 
 final class FirebaseAuthService: AuthService {
     
+    var isAuth: Bool {
+        guard Auth.auth().currentUser != nil else {
+            return false
+        }
+        return true
+    }
+    
     private var verificationID: String?
     
     lazy var statePublisher: AnyPublisher<Bool,Never> = {
@@ -77,11 +89,20 @@ final class FirebaseAuthService: AuthService {
             .eraseToAnyPublisher()
     }()
     
-    func authRequestSMSCode(toPhone phone: String) -> AnyPublisher<Void, Error> {
-        Future<String, Error> { promise in
+    var resolver: Resolver
+    var settingsService: SettingsService
+    
+    init(resolver: Resolver) {
+        self.resolver = resolver
+        self.settingsService = resolver.resolve(SettingsService.self)!
+    }
+    
+    func authRequestSMSCode(toPhone phone: PhoneNumber) -> AnyPublisher<Void, Error> {
+        settingsService.currentUserSettings.phone = phone
+        return Future<String, Error> { promise in
             Task {
                 do {
-                    let id = try await FirebaseAuth.PhoneAuthProvider.provider().verifyPhoneNumber(phone, uiDelegate: nil)
+                    let id = try await FirebaseAuth.PhoneAuthProvider.provider().verifyPhoneNumber(phone.fullPhone, uiDelegate: nil)
                     promise(.success(id))
                 } catch (let error) {
                     promise(.failure(error))

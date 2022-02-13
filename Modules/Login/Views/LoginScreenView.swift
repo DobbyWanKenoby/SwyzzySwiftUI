@@ -107,7 +107,7 @@ struct LoginScreenView: BaseView {
                     .frame(maxWidth: .infinity)
             } else {
                 ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: Color.accentButton))
+                    .progressViewStyle(CircularProgressViewStyle(tint: Color.accentButtonText))
                     .frame(height: 55)
                     .frame(maxWidth: .infinity)
             }

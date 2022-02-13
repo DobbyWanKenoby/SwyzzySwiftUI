@@ -17,7 +17,7 @@ extension UserQuestionnaireScreenView {
         
         @Published var didEndUpdating = false
         @Published var isAnimate = false
-        @Published var currentScreen: SubScreen = .enterName
+        @Published var currentScreen: SubScreen = .hello
         
         @Published var firstName: String = ""
         @Published var lastName: String = ""
@@ -37,26 +37,32 @@ extension UserQuestionnaireScreenView {
         // Dependencies
         private var resolver: Resolver
         private var userService: UserService
+        private var eventService: EventService
+        private var phonebookService: PhonebookService
+        private var stateService: StateService
         
         required init(resolver: Resolver) {
             self.resolver = resolver
             userService = resolver.resolve(UserService.self)!
+            eventService = resolver.resolve(EventService.self)!
+            phonebookService = resolver.resolve(PhonebookService.self)!
+            stateService = resolver.resolve(StateService.self)!
         }
         
         func showNextScreen() {
-            withAnimation {
-                switch currentScreen {
-                case .hello:
-                    currentScreen = .addGift
-                case .addGift:
-                    currentScreen = .lookFeed
-                case .lookFeed:
-                    currentScreen = .enterName
-                case .enterName:
-                    currentScreen = .birthsday
-                default:
-                    return
-                }
+            switch currentScreen {
+            case .hello:
+                currentScreen = .addGift
+            case .addGift:
+                currentScreen = .lookFeed
+            case .lookFeed:
+                currentScreen = .enterName
+            case .enterName:
+                currentScreen = .birthday
+            case .birthday:
+                currentScreen = .phonebook
+            case .phonebook:
+                stateService.statePublisher.send(.needMainFlow)
             }
         }
         
@@ -73,7 +79,7 @@ extension UserQuestionnaireScreenView {
             }
             
             Task {
-                guard var localUser = await userService.user else { return }
+                guard let localUser = await userService.user else { return }
                 localUser.firstname = _firstname
                 localUser.lastname = _lastname
                 await userService.update(user: localUser)
@@ -96,19 +102,34 @@ extension UserQuestionnaireScreenView {
             }
             
             Task {
-                guard var localUser = await userService.user else { return }
-                localUser.birthsday = birthsday
+                guard let localUser = await userService.user else { return }
+                localUser.birthday = birthsday
 
                 await userService.update(user: localUser)
                 do {
-                    try await userService.uploadUser()
+                    async let _ = try await userService.uploadUser()
+                    async let _ = try await eventService.create(event: Event(
+                        title: NSLocalizedString("My Birthday", comment: ""),
+                        date: birthsday))
                 } catch {
                     isShowingLoaderOnBirthsdayPage = false
-                    alertMessage = "Can not save data. Please try again"
+                    alertMessage = NSLocalizedString("Can not save data. Please try again", comment: "Error if saving data about birthday has finished with error")
                     isShowingAlert = true
                 }
                 isShowingLoaderOnBirthsdayPage = false
                 showNextScreen()
+            }
+        }
+        
+        func getPhoneBookAccessAndUploadContacts() {
+            Task {
+                do {
+                    _ = try await phonebookService.getPhoneBookAccess()
+                    showNextScreen()
+                } catch( let error ) {
+                    isShowingAlert = true
+                    alertMessage = error.localizedDescription
+                }
             }
         }
 
@@ -119,7 +140,8 @@ extension UserQuestionnaireScreenView {
         case addGift
         case lookFeed
         case enterName
-        case birthsday
+        case birthday
+        case phonebook
     }
     
     

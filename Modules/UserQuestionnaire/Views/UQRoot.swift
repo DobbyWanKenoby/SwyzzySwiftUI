@@ -23,6 +23,7 @@ struct UserQuestionnaireScreenView: BaseView {
         ZStack {
             currentPage
                 .modifier(SubScreenTransitionModifier())
+                .animation(.easeInOut, value: vm.currentScreen)
         }
         .alert(vm.alertMessage, isPresented: $vm.isShowingAlert) {
             Button("OK", role: .cancel) { }
@@ -40,8 +41,10 @@ struct UserQuestionnaireScreenView: BaseView {
             LookFeedView(vm: vm)
         case .enterName:
             EnterNameView(vm: vm)
-        case .birthsday:
+        case .birthday:
             BirthsdayView(vm: vm)
+        case .phonebook:
+            PhonebookView(vm: vm)
         }
     }
 }

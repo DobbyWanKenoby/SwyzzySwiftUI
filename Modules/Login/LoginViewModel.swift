@@ -45,12 +45,14 @@ extension LoginScreenView {
         // Dependencies
         private var resolver: Resolver
         private var authService: AuthService
+        private var stateService: StateService
         private var countryDataService: CountryDataService
         
         init(resolver: Resolver) {
             self.resolver = resolver
             
             // Inject dependecies
+            stateService = resolver.resolve(StateService.self)!
             authService = resolver.resolve(AuthService.self)!
             countryDataService = resolver.resolve(CountryDataService.self)!
             
@@ -61,9 +63,10 @@ extension LoginScreenView {
         
         func requestSMS() {
             isEnableSendButton = false
+            let phone = PhoneNumber(countryCode: currentCountry.phoneCode, phone: phoneNumber)
             
             authService
-                .authRequestSMSCode(toPhone: fullPhoneNumber)
+                .authRequestSMSCode(toPhone: phone)
                 .receive(on: DispatchQueue.main)
                 .sink { [unowned self] completion in
                     switch completion {
@@ -104,6 +107,7 @@ extension LoginScreenView {
                         return
                     }
                 } receiveValue: { [unowned self] _ in
+                    stateService.statePublisher.send(.signIn)
                     sheet = .none
                 }
                 .store(in: &subscriptions)

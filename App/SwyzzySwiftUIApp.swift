@@ -19,27 +19,38 @@ struct SwyzzySwiftUIApp: App {
     @StateObject
     var vm = AppViewModel(resolver: Self.resolver)
     
-    
-    static var assembler = Assembler([
-        DataServiceAssembly(),
-        FirebaseAssembly()
-    ])
+    static var assembler = Assembler([ BaseAssembly() ])
     
     static var resolver: Resolver {
         Self.assembler.resolver
     }
-
+    
     var body: some Scene {
         WindowGroup {
-            if vm.isAuth {
-                LoadingScreenView(resolver: Self.resolver)
-            } else {
-                LoginScreenView(resolver: Self.resolver)
-                    .onOpenURL { url in
-                        print("Received URL: \(url)")
-                        Auth.auth().canHandle(url)
-                    }
-            }
+            rootView
+                .animation(.easeInOut, value: vm.appState)
+        }
+    }
+    
+    @ViewBuilder
+    private var rootView: some View {
+        switch vm.appState {
+        case .signOut:
+            LoginScreenView(resolver: Self.resolver)
+                .onOpenURL { url in
+                    print("Received URL: \(url)")
+                    Auth.auth().canHandle(url)
+                }
+        case .signIn:
+            LoadingScreenView(resolver: Self.resolver)
+        case .needUserQuestionnaire:
+            UserQuestionnaireScreenView(resolver: Self.resolver)
+        case _ where [nil, AppState.signIn].contains(vm.appState):
+            LoadingScreenView(resolver: Self.resolver)
+        case _ where [AppState.finishedUserQuestionnaire, AppState.needMainFlow].contains(vm.appState):
+            MainView(resolver: Self.resolver)
+        default:
+            EmptyView()
         }
     }
 }
@@ -49,9 +60,9 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         
         FirebaseApp.configure()
-//        do {
-//            try Auth.auth().signOut()
-//        } catch {}
+//                do {
+//                    try Auth.auth().signOut()
+//                } catch {}
         return true
     }
     

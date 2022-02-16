@@ -10,8 +10,7 @@ import Swinject
 
 struct UserQuestionnaireScreenView: BaseView {
     
-    @StateObject
-    var vm: ViewModel
+    @StateObject var vm: ViewModel
     var resolver: Resolver
     
     init(resolver: Resolver) {

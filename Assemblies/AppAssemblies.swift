@@ -29,6 +29,10 @@ class BaseAssembly: Assembly {
             FirebaseUserService(resolver: r)
         }.inObjectScope(.container)
         
+        container.register(WishService.self) { _ in
+            FirebaseWishService()
+        }.inObjectScope(.container)
+        
         container.register(EventService.self) { r in
             FirebaseEventService()
         }.inObjectScope(.container)

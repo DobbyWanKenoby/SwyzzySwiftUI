@@ -7,6 +7,8 @@
 
 import Firebase
 import FirebaseFirestoreSwift
+import FirebaseStorage
+import CryptoKit
 
 // MARK: Base Protocol
 
@@ -27,6 +29,14 @@ extension FirebaseBased {
     // Firebase firestore
     var firestore: Firestore {
         Firestore.firestore()
+    }
+    
+    // Firebase storage
+    var storage: Storage {
+        Storage.storage()
+    }
+    var storageRef: StorageReference {
+        storage.reference()
     }
 }
 
@@ -60,10 +70,23 @@ extension Firestore {
         self.userDoc(withID: id).collection("events")
     }
     
+    // User's Wishes
+    func userWishesCollection(userID id: String) -> CollectionReference {
+        self.userDoc(withID: id).collection("wishes")
+    }
+    
 //    func userPhonebookCollection(ofUser id: String) -> CollectionReference {
 //        self.collection("users").document(id).collection("phonebook")
 //    }
     
-    
-    
+}
+
+extension Storage {
+    // Wish's image
+    func wishImagesReference(imageFileName: String? = nil) -> StorageReference {
+        guard let image = imageFileName else {
+            return self.reference().child("wishes")
+        }
+        return self.reference().child("wishes/\(image)")
+    }
 }

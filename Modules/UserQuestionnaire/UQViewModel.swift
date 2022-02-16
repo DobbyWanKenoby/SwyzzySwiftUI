@@ -22,7 +22,7 @@ extension UserQuestionnaireScreenView {
         @Published var firstName: String = ""
         @Published var lastName: String = ""
         
-        @Published var birthsday: Date = Date()
+        @Published var birthday: Date = Date()
         
         // Error
         @Published var isShowingAlert = false
@@ -103,14 +103,14 @@ extension UserQuestionnaireScreenView {
             
             Task {
                 guard let localUser = await userService.user else { return }
-                localUser.birthday = birthsday
+                localUser.birthday = birthday
 
                 await userService.update(user: localUser)
                 do {
                     async let _ = try await userService.uploadUser()
                     async let _ = try await eventService.create(event: Event(
                         title: NSLocalizedString("My Birthday", comment: ""),
-                        date: birthsday))
+                        date: getNextBirthdayDate(birthday)))
                 } catch {
                     isShowingLoaderOnBirthsdayPage = false
                     alertMessage = NSLocalizedString("Can not save data. Please try again", comment: "Error if saving data about birthday has finished with error")
@@ -119,6 +119,15 @@ extension UserQuestionnaireScreenView {
                 isShowingLoaderOnBirthsdayPage = false
                 showNextScreen()
             }
+        }
+        
+        private func getNextBirthdayDate(_ birthday: Date) -> Date {
+            var mutableDate = birthday
+            let currentDate = Date()
+            while(mutableDate < currentDate) {
+                mutableDate = Calendar.current.date(byAdding: .year, value: 1, to: mutableDate)!
+            }
+            return mutableDate
         }
         
         func getPhoneBookAccessAndUploadContacts() {

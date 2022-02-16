@@ -45,6 +45,9 @@ final class User {
 }
 
 extension User: CacheImagable {
+    var imagePlaceholder: UIImage {
+        UIImage(named: "testUser")!
+    }
     var cachePath: String {
         return "userImageCache"
     }

@@ -34,6 +34,7 @@ struct LoginScreenView: BaseView {
                     sendCodeButton
                         .disabled(!vm.isEnableSendButton)
                     sendCodeText
+                        .padding(.bottom, 20)
                 }
                 Spacer()
             }

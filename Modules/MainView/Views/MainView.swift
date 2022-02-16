@@ -18,22 +18,68 @@ struct MainView: View {
     
     var body: some View {
         TabView {
-            OwnWishesView(resolver: resolver)
-                .tabItem {
-                    VStack {
-                        Image(systemName: "list.bullet")
-                        Text("List")
-                    }
-                }
-            Text("Add wishes")
-                .tabItem {
-                    VStack {
-                        Image(systemName: "list.bullet")
-                        Text("Add wishes")
-                    }
-                }
+            feedView
+            friendsView
+            addWishView
+            myWishesView
+            calendarView
         }
     }
+    
+    private var myWishesView: some View {
+        OwnWishesView(resolver: resolver)
+            .tabItem {
+                VStack {
+                    Image(systemName: "gift.fill")
+                    Text("My wishes")
+                }
+            }
+    }
+    
+    private var feedView: some View {
+        Text("Add wishes")
+            .tabItem {
+                VStack {
+                    Image(systemName: "list.bullet")
+                    Text("Feed")
+                }
+            }
+    }
+    
+    private var addWishView: some View {
+        NavigationView {
+            AddWishView(resolver: resolver)
+                .navigationTitle("Add wish")
+        }
+        .tabItem {
+            VStack {
+                Image(systemName: "plus.app.fill")
+                Text("Create wish")
+            }
+        }
+            
+    }
+    
+    private var friendsView: some View {
+        Text("Add wish")
+            .tabItem {
+                VStack {
+                    Image(systemName: "person.3.fill")
+                    Text("Friends")
+                }
+            }
+    }
+    
+    private var calendarView: some View {
+        Text("Add wish")
+            .tabItem {
+                VStack {
+                    Image(systemName: "calendar")
+                    Text("Calendar")
+                }
+            }
+    }
+    
 }
 
 struct MainView_Previews: PreviewProvider {

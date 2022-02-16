@@ -19,7 +19,7 @@ struct OwnWishesView: View {
     var body: some View {
         NavigationView {
             Form {
-                Text("ssss")
+                
             }
             .navigationBarTitle("My wishes")
                 .toolbar {

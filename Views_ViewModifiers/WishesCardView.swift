@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct WishesCardView: View {
     
@@ -14,31 +15,30 @@ struct WishesCardView: View {
     var body: some View {
         VStack(alignment: .leading) {
             HStack {
-                Image(uiImage: vm.user.image)
+                Image(uiImage: vm.userimage)
                     .resizable()
-                    
                     .frame(width: 50, height: 50)
                     .cornerRadius(25)
-                    .shadow(color: .black, radius: 1)
-                Text("\(vm.user.firstname) \(vm.user.lastname)")
-                    .font(.headline)
+                VStack(alignment: .leading) {
+                    Text("\(vm.username)")
+                        .font(.headline)
+                    Text("\(vm.createDateString)")
+                        .font(.footnote)
+                        .foregroundColor(Color.gray)
+                }
             }
-            VStack {
-                Image(uiImage: vm.wish.image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .clipped()
+            HStack(spacing: 5) {
+                Button {
                     
-                    
-                
+                } label: {
+                    Label("Wants to \(vm.eventTitle)", systemImage: "gift.fill")
+                }
             }
-            .shadow(color: .black, radius: 1)
-//            HStack(spacing: 5) {
-//                Image(systemName: "gift.fill")
-//                Text("Wants to \(vm.event!.title)")
-//
-//            }
             .font(.subheadline)
+            Image(uiImage: vm.wishimage)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .clipped()
         }
     }
     
@@ -50,13 +50,21 @@ struct WishesCardView: View {
 extension WishesCardView {
     @MainActor
     class ViewModel: ObservableObject {
-        @Published var wish: Wish
-        @Published var user: User
-        var event: Event? = nil
-        
+//        private var wish: Wish
+        var createDate: Date = Date()
+        var createDateString = "1 day ago"
+        var username: String = "John Malkovich"
+        @Published var userimage: UIImage = UIImage(named: "testUser")!
+        @Published var wishimage: UIImage = UIImage(named: "testWish")!
+        var eventTitle: String = "My birthsday"
+        var eventDate: Date = Date()
+
         init(wish: Wish) {
-            self.wish = wish
-            self.user = wish.user!
+//            self.wish = wish
+//            //self.username = "\(wish.user.firstname) \(wish.user.lastname)"
+//            self.userimage = wish.user.image
+//            self.wishimage = wish.image
+//            self.createDate = wish.create_at
         }
     }
 }
@@ -64,14 +72,11 @@ extension WishesCardView {
 struct WishesCardView_Previews: PreviewProvider {
     
     static var wish: Wish {
-        let wish = Wish(id: UUID().uuidString, description: "My best way", create_at: Date())
         let user = User(id: UUID().uuidString, firstname: "Jason", lastname: "Statham Jr.", birthday: Date())
-        wish.assign(user: user)
+        let wish = Wish(resolver: getPreviewResolver(), description: "My best way", createDate: Date(), user: user)
+        user.assign(wishes: [wish])
         return wish
     }
-    
-    
-//    static var event = Event(title: "My birthday", date: Date(), owner: "222")
     
     static var previews: some View {
         WishesCardView(wish: Self.wish)

@@ -16,6 +16,8 @@ protocol EventService: Actor {
     // create event for current user
     func create(event: Event) throws
     func update(event: Event) throws
+    
+    func getEvents(ofUser id: String) async throws -> [Event]
 }
 
 actor FirebaseEventService: EventService, FirebaseBased {
@@ -28,7 +30,7 @@ actor FirebaseEventService: EventService, FirebaseBased {
 //        events.append(event)
     }
     
-    func getEvents(ofUser id: String) async throws -> [Event?] {
+    func getEvents(ofUser id: String) async throws -> [Event] {
         try await withCheckedThrowingContinuation { continuation in
             firestore.userEventsCollection(userID: id).getDocuments { querySnapshot, error in
                 

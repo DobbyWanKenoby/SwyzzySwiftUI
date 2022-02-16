@@ -28,7 +28,7 @@ extension UserQuestionnaireScreenView {
                             .multilineTextAlignment(.center)
                         Text("Please include your date of birth so that we can create the first event on your calendar.")
                             .multilineTextAlignment(.center)
-                        DatePicker("", selection: $vm.birthsday, displayedComponents: .date)
+                        DatePicker("", selection: $vm.birthday, displayedComponents: .date)
                             .datePickerStyle(WheelDatePickerStyle())
                             .padding()
                             .fixedSize()

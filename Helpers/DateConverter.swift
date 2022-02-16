@@ -12,6 +12,7 @@ class DateConverter {
     
     static func convert(birthday: String) -> Date? {
         let formatter = DateFormatter()
+        formatter.timeZone = TimeZone(abbreviation: "UTC")
         formatter.dateFormat = Self.dateFormat
         return formatter.date(from: birthday)
     }

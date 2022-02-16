@@ -31,6 +31,7 @@ actor FirebaseUserService: UserService, FirebaseBased {
     private var resolver: Resolver
     private var authService: AuthService
     private var settingsService: SettingsService
+    private var eventService: EventService
     
     private var subscribers = Set<AnyCancellable>()
     
@@ -38,6 +39,7 @@ actor FirebaseUserService: UserService, FirebaseBased {
         self.resolver = resolver
         self.authService = resolver.resolve(AuthService.self)!
         self.settingsService = resolver.resolve(SettingsService.self)!
+        self.eventService = resolver.resolve(EventService.self)!
     }
     
     func update(user: User) {
@@ -46,26 +48,83 @@ actor FirebaseUserService: UserService, FirebaseBased {
     
     var userPublisher = PassthroughSubject<User?, Never>()
     
-    func downloadUser() async throws -> User {
-
-        async let userAsyncDoc = try await getBaseUserDoc()
-//        async let friendsAsyncDoc = try await getFriendsUserDoc()
-        let userDoc = try await userAsyncDoc
-        //let friendsDoc = try await friendsAsyncDoc
+    // MARK: - Upload data
+    
+    func uploadUser() async throws {
         
+        var userMainData: [AnyHashable: Any] = [:]
+        
+        // name
+        userMainData["firstname"] = user.firstname
+        userMainData["lastname"] = user.lastname
+        // birthday
+        userMainData["birthday"] = DateConverter.convert(birthday: user.birthday)
+        // last contacts searching
+        if let lastSearchContacts = settingsService.currentUserSettings.lastSearchContacts {
+            userMainData["lastsearchcontacts"] = lastSearchContacts
+        }
+        
+        async let _ = try await firestore.userDoc(withID: firebaseUser.uid).updateData(userMainData)
+        let friends = user.friends.map { $0.id }
+        async let _ = try await firestore.userFriendsDocument(ofUser: firebaseUser.uid).updateData(["friends": friends])
+        
+    }
+    
+   // MARK: - Download data
+    
+    func downloadUser() async throws -> User {
+        async let userDoc = try await getBaseUserDoc(withID: firebaseUser.uid)
+        let user = getUserBaseData(fromDoc: try await userDoc)
+        settingsService.currentUserSettings.lastSearchContacts = getUserLastSearchContacts(fromDoc: try await userDoc)
+        
+        async let events = try await eventService.getEvents(ofUser: firebaseUser.uid)
+        user.assign(events: try await events)
+        
+        async let userFriendsDoc = try await getFriendsUserDoc(withID: firebaseUser.uid)
+        user.friends = try await getUserFriends(fromDoc: try await userFriendsDoc)
+        return user
+    }
+    
+    private func getUserFriends(fromDoc userDoc: DocumentSnapshot) async throws -> [User] {
+        guard let friendsID = userDoc["friends"] as? [String] else { return [] }
+        
+        return try await withThrowingTaskGroup(of: User.self) { group in
+            var friends = [User]()
+            friends.reserveCapacity(friendsID.count)
+            for userid in friendsID {
+                group.addTask {
+                    let userDoc = try await self.getBaseUserDoc(withID: userid)
+                    let friend = await self.getUserBaseData(fromDoc: userDoc)
+                    var events = [Event]()
+                    for event in try await self.eventService.getEvents(ofUser: userid) {
+                        events.append(event)
+                    }
+                    friend.assign(events: events)
+                    return friend
+                }
+            }
+            
+            for try await friend in group {
+                friends.append(friend)
+            }
+            return friends
+        }
+    }
+    
+    private func getUserBaseData(fromDoc userDoc: DocumentSnapshot) -> User {
         // Birthday
         var birthday: Date?
         if let rawBirthday = userDoc.get("birthday") as? String {
             birthday = DateConverter.convert(birthday: rawBirthday)
         }
-        
         user = User(id: userDoc.documentID,
                        firstname: userDoc.get("firstname") as? String ?? "",
                        lastname: userDoc.get("lastname") as? String ?? "",
                        birthday: birthday ?? Date())
-        
-        // TODO: Add download friends profiles
-        
+        return user
+    }
+    
+    private func getUserLastSearchContacts(fromDoc userDoc: DocumentSnapshot) -> Date? {
         // Date of last searching of contacts
         var lastSearchContacts: Date?
         if let timestamp = userDoc.get("lastsearchcontacts") as? Timestamp,
@@ -74,14 +133,11 @@ actor FirebaseUserService: UserService, FirebaseBased {
         } else {
             lastSearchContacts = Date(timeIntervalSinceReferenceDate: TimeInterval())
         }
-        
-        settingsService.currentUserSettings.lastSearchContacts = lastSearchContacts
-        
-        return user
+        return lastSearchContacts
     }
     
-    private func getBaseUserDoc() async throws -> DocumentSnapshot {
-        let userDocRef = self.firestore.userDoc(withID: firebaseUser.uid)
+    private func getBaseUserDoc(withID id: String) async throws -> DocumentSnapshot {
+        let userDocRef = self.firestore.userDoc(withID: id)
         let document = try await userDocRef.getDocument()
         guard document.exists else {
             throw FirebaseError.cantGetDocument
@@ -89,14 +145,16 @@ actor FirebaseUserService: UserService, FirebaseBased {
         return document
     }
     
-    private func getFriendsUserDoc() async throws -> DocumentSnapshot {
-        let userDocRef = self.firestore.userFriendsDocument(ofUser: firebaseUser.uid)
+    private func getFriendsUserDoc(withID id: String) async throws -> DocumentSnapshot {
+        let userDocRef = self.firestore.userFriendsDocument(ofUser: id)
         let document = try await userDocRef.getDocument()
         guard document.exists else {
             throw FirebaseError.cantGetDocument
         }
         return document
     }
+    
+    // MARK: - Create base structure
     
     func createRemoteUserStructureIfNeeded() async throws {
         try await withThrowingTaskGroup(of: Void.self) { taskGroup in
@@ -120,8 +178,9 @@ actor FirebaseUserService: UserService, FirebaseBased {
             let docShapshot: DocumentSnapshot
             do {
                 docShapshot = try transaction.getDocument(doc)
-            } catch (let error) {
-                return error
+            } catch let fetchError as NSError {
+                errorPointer?.pointee = fetchError
+                return nil
             }
 
             guard !docShapshot.exists else { return true }
@@ -138,11 +197,13 @@ actor FirebaseUserService: UserService, FirebaseBased {
         guard let phone = settingsService.currentUserSettings.phone else { return }
         try await firestore.runTransaction { transaction, errorPointer in
             let doc = self.firestore.userDoc(withID: self.firebaseUser.uid)
+//            let doc = self.firestore.userDoc(withID: UUID().uuidString)
             let docShapshot: DocumentSnapshot
             do {
                 docShapshot = try transaction.getDocument(doc)
-            } catch (let error) {
-                return error
+            } catch let fetchError as NSError {
+                errorPointer?.pointee = fetchError
+                return nil
             }
 
             guard !docShapshot.exists else { return true }
@@ -160,45 +221,22 @@ actor FirebaseUserService: UserService, FirebaseBased {
     }
     
     private func createFriendStructure() async throws {
-        guard let phone = settingsService.currentUserSettings.phone else { return }
         try await firestore.runTransaction { transaction, errorPointer in
             let doc = self.firestore.userFriendsDocument(ofUser: self.firebaseUser.uid)
             let docShapshot: DocumentSnapshot
             do {
                 docShapshot = try transaction.getDocument(doc)
-            } catch (let error) {
-                return error
+            } catch let fetchError as NSError {
+                errorPointer?.pointee = fetchError
+                return nil
             }
 
             guard !docShapshot.exists else { return true }
 
             transaction.setData([
-                "friends": phone.fullPhone],
+                "friends": []],
                 forDocument: doc)
             return true
         }
     }
-    
-    func uploadUser() async throws {
-        
-        var userMainData: [AnyHashable: Any] = [:]
-        
-        // name
-        userMainData["firstname"] = user.firstname
-        userMainData["lastname"] = user.lastname
-        // birthday
-        userMainData["birthday"] = DateConverter.convert(birthday: user.birthday)
-        // last contacts searching
-        if let lastSearchContacts = settingsService.currentUserSettings.lastSearchContacts {
-            userMainData["lastsearchcontacts"] = lastSearchContacts
-        }
-        
-        async let _ = try await firestore.userDoc(withID: firebaseUser.uid).updateData(userMainData)
-        async let _ = try await firestore.userFriendsDocument(ofUser: firebaseUser.uid).updateData(["friends":user.friends])
-        
-    }
-}
-
-struct Phonebook: Codable {
-    var phones: [String] = []
 }
